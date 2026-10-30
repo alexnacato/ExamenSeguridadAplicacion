@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="description" content="TicketSec · Plataforma segura de boletería para estadios">
+  <meta name="theme-color" content="#0a0c11">
+  <title>TicketSec · Boletería segura</title>
+
+  <!-- Favicon e hoja de estilos propia (permitidos por la CSP del backend). -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!--
+    Estructura fija de la aplicación:
+      header  -> marca, cambio de tema y usuario conectado
+      #nav    -> pestañas según el rol (la llena app.js)
+      #main   -> vista actual (la llena app.js)
+      #toast  -> notificaciones temporales
+      #modal  -> ventana emergente para el QR dinámico
+  -->
+  <header class="topbar">
+    <button class="brand" type="button" data-act="home" aria-label="Ir al inicio">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+      </span>
+      <span class="brand-text"><strong>TicketSec</strong><small>Boletería segura</small></span>
+    </button>
+    <div class="top-actions">
+      <div id="user" class="user"></div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <nav id="nav" class="tabs" aria-label="Secciones"></nav>
+    <section id="main" class="view" aria-live="polite"></section>
+  </main>
+
+  <footer class="foot"><span class="dot"></span> TicketSec</footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-x" type="button" data-act="closeModal" aria-label="Cerrar">&times;</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Librería externa solo para dibujar el QR (la firma la hace el backend). -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Lógica de la interfaz: estado, vistas por rol, acciones y render. -->
+  <script src="app.js"></script>
+</body>
+</html>
