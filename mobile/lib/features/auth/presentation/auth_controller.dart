@@ -40,7 +40,7 @@ class AuthController extends ChangeNotifier {
       _pendingEmail = email.trim();
       _notice = challenge.devOtp == null
           ? null
-          : 'Código OTP de demostración: ${challenge.devOtp}';
+          : 'Tu código de acceso es ${challenge.devOtp} (solo en demo).';
       return true;
     } on AppFailure catch (failure) {
       _error = failure.message;

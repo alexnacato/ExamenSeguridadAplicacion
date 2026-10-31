@@ -28,21 +28,11 @@ class _HomeShellState extends State<HomeShell> {
 
     final tabs = _tabsFor(session.role);
     final index = _index.clamp(0, tabs.length - 1);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const AppLogo(compact: true),
         actions: [
-          IconButton(
-            tooltip: 'Cambiar tema',
-            onPressed: () => deps.theme.toggle(theme.brightness),
-            icon: Icon(
-              theme.brightness == Brightness.dark
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-          ),
           IconButton(
             tooltip: 'Cerrar sesión',
             onPressed: () => _logout(),
@@ -132,7 +122,7 @@ class _HomeShellState extends State<HomeShell> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Cerrar sesión'),
         content: const Text(
-          'Se revocará la sesión en el servidor y este dispositivo dejará de tener acceso.',
+          '¿Deseas salir de tu cuenta en este dispositivo?',
         ),
         actions: [
           TextButton(

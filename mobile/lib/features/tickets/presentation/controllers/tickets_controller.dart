@@ -37,6 +37,8 @@ class TicketsController extends ChangeNotifier {
   String? get qrError => _qrError;
   int get qrSecondsLeft => _qrSecondsLeft;
 
+  Future<DynamicQr> fetchQr(String ticketId) => _repository.qr(ticketId);
+
   int get available => _tickets.where((ticket) => !ticket.used).length;
   int get used => _tickets.where((ticket) => ticket.used).length;
 

@@ -73,15 +73,15 @@ class AdminController extends ChangeNotifier {
 
     try {
       await _repository.attemptAuditEdit();
-      _error = 'Alerta: el log WORM permitió una modificación.';
+      _error = 'Alerta: la auditoría permitió una modificación.';
     } on AppFailure catch (failure) {
       if (failure.statusCode == 403) {
-        _notice = 'WORM activo: la modificación fue bloqueada.';
+        _notice = 'La auditoría está protegida: la modificación fue bloqueada.';
       } else {
         _error = failure.message;
       }
     } catch (_) {
-      _error = 'No se pudo ejecutar la prueba WORM.';
+      _error = 'No se pudo ejecutar la prueba.';
     } finally {
       _testing = false;
       _notify();

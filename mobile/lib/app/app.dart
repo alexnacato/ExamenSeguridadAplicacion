@@ -38,8 +38,7 @@ class _TicketSecAppState extends State<TicketSecApp> {
             title: 'TicketSec',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(),
-            darkTheme: AppTheme.dark(),
-            themeMode: _dependencies.theme.mode,
+            themeMode: ThemeMode.light,
             home: const _AuthGate(),
           );
         },

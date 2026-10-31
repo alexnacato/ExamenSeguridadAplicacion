@@ -113,7 +113,6 @@ class _AuthPageState extends State<AuthPage> {
   Widget _buildCard(BuildContext context, AuthController auth) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Card(
       child: Padding(
@@ -124,36 +123,18 @@ class _AuthPageState extends State<AuthPage> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        auth.awaitingOtp ? 'Verificación 2FA' : 'Acceso seguro',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -.4,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Cambiar tema',
-                      onPressed: () => AppScope.of(context).theme.toggle(
-                            theme.brightness,
-                          ),
-                      icon: Icon(
-                        isDark
-                            ? Icons.light_mode_rounded
-                            : Icons.dark_mode_rounded,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                Text(
+                  auth.awaitingOtp ? 'Verificación de acceso' : 'Acceso seguro',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -.4,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   auth.awaitingOtp
                       ? 'Confirma el código enviado a ${auth.pendingEmail}.'
-                      : 'Boletos con QR dinámico, pagos tokenizados y auditoría WORM.',
+                      : 'Compra y valida tus boletos con QR y pago seguro.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                     height: 1.5,
@@ -385,8 +366,8 @@ class _AuthPageState extends State<AuthPage> {
         children: [
           if (auth.devOtp != null) ...[
             InfoBanner(
-              message: 'Modo demo · OTP: ${auth.devOtp}',
-              icon: Icons.vpn_key_outlined,
+              message: 'Código de acceso: ${auth.devOtp}',
+              icon: Icons.key_outlined,
             ),
             const SizedBox(height: 14),
           ],
@@ -424,7 +405,7 @@ class _AuthPageState extends State<AuthPage> {
             child: const Text('Usar otra cuenta'),
           ),
           Text(
-            'El código expira en 2 minutos y admite 3 intentos.',
+            'El código es válido por 2 minutos.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -659,7 +640,7 @@ class _AuthHero extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 460),
           child: Text(
-            'Compra boletos con pago tokenizado, recibe un QR firmado que rota cada 15 segundos y audita cada evento con logs inmutables.',
+            'Compra boletos con pago seguro y recibe un QR exclusivo para ingresar al estadio en segundos.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
               height: 1.6,
@@ -670,20 +651,20 @@ class _AuthHero extends StatelessWidget {
           const SizedBox(height: 34),
           const _Feature(
             icon: Icons.qr_code_2_rounded,
-            title: 'QR dinámico firmado',
-            text: 'ECDSA P-256 y rotación de 15 s contra capturas y replay.',
+            title: 'Tu QR para la puerta',
+            text: 'Un código exclusivo para tu asiento, listo cuando llegues.',
           ),
           const SizedBox(height: 16),
           const _Feature(
             icon: Icons.credit_card_rounded,
-            title: 'Pago tokenizado',
-            text: 'La tarjeta nunca toca el servidor: solo viaja un token de un uso.',
+            title: 'Pago seguro',
+            text: 'Paga con tarjeta sin exponer tus datos.',
           ),
           const SizedBox(height: 16),
           const _Feature(
-            icon: Icons.lock_clock_rounded,
-            title: 'Auditoría WORM',
-            text: 'Cadena de hashes inmutable para cada compra, acceso y bloqueo.',
+            icon: Icons.receipt_long_rounded,
+            title: 'Boletos transferibles',
+            text: 'Envía tu entrada a acompañantes cuando lo necesites.',
           ),
         ],
         const SizedBox(height: 26),
@@ -700,7 +681,7 @@ class _AuthHero extends StatelessWidget {
               Icon(Icons.verified_outlined, size: 15, color: scheme.primary),
               const SizedBox(width: 6),
               Text(
-                'MITRE ATT&CK · PCI-DSS · OWASP',
+                'Compra segura · Ingreso con QR',
                 style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,

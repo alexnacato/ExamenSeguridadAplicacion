@@ -37,9 +37,9 @@ class _SupportPageState extends State<SupportPage> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [
             const SectionHeader(
-              title: 'Soporte N1',
+              title: 'Soporte',
               subtitle:
-                  'Consulta el estado de un boleto con el ID exacto. El titular se muestra enmascarado.',
+                  'Consulta el estado de un boleto con el ID exacto. El correo del titular se muestra protegido.',
             ),
             const SizedBox(height: 16),
             if (controller.error != null) ...[
@@ -89,7 +89,7 @@ class _SupportPageState extends State<SupportPage> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Ingresa el ID de un boleto para ver su asiento, estado y titular enmascarado.',
+                      'Ingresa el ID de un boleto para ver su asiento, estado y titular con correo protegido.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12.5,
@@ -103,7 +103,7 @@ class _SupportPageState extends State<SupportPage> {
             const SizedBox(height: 16),
             const InfoBanner(
               message:
-                  'Esta consulta queda registrada en el log WORM como SUPPORT_VIEW. No se exponen correos completos ni datos de pago.',
+                  'No se exponen correos completos ni datos de pago. La consulta queda registrada para trazabilidad.',
               icon: Icons.privacy_tip_outlined,
             ),
           ],

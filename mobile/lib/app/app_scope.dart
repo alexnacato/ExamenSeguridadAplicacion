@@ -18,7 +18,7 @@ import '../features/tickets/presentation/controllers/tickets_controller.dart';
 import 'theme/theme_controller.dart';
 
 class AppDependencies {
-  AppDependencies._({
+  AppDependencies({
     required this.config,
     required this.sessionStore,
     required this.api,
@@ -74,7 +74,7 @@ class AppDependencies {
       admin.reset();
     });
 
-    return AppDependencies._(
+    return AppDependencies(
       config: config,
       sessionStore: sessionStore,
       api: api,

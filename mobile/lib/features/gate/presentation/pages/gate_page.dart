@@ -49,7 +49,7 @@ class _GatePageState extends State<GatePage> {
             const SectionHeader(
               title: 'Validación en puerta',
               subtitle:
-                  'Verifica la firma ECDSA, la vigencia de 30 s y el uso único del boleto.',
+                  'Valida el QR del asistente y confirma su ingreso al estadio.',
             ),
             const SizedBox(height: 16),
             if (controller.error != null) ...[
@@ -118,8 +118,7 @@ class _GatePageState extends State<GatePage> {
                 children: [
                   const SectionHeader(
                     title: 'Escanear o pegar QR',
-                    subtitle:
-                        'Pega el contenido firmado del boleto. En producción se lee con la cámara.',
+                    subtitle: 'Pega el contenido del QR del boleto del asistente.',
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -133,7 +132,7 @@ class _GatePageState extends State<GatePage> {
                     decoration: const InputDecoration(
                       labelText: 'Contenido del QR',
                       alignLabelWithHint: true,
-                      hintText: 'eyJ0IjoiLi4uIn0.firma...',
+                      hintText: 'Contenido del QR…',
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -155,11 +154,11 @@ class _GatePageState extends State<GatePage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SectionHeader(
-                    title: 'Llave pública del validador',
+                    title: 'Clave del validador',
                     subtitle:
-                        'Se usa para verificar la firma sin exponer la llave privada.',
+                        'Clave oficial del estadio para validar los boletos.',
                     trailing: IconButton(
-                      tooltip: 'Copiar llave',
+                      tooltip: 'Copiar clave',
                       onPressed: controller.publicKey == null
                           ? null
                           : () async {
@@ -207,8 +206,8 @@ class _GatePageState extends State<GatePage> {
             const SizedBox(height: 16),
             const InfoBanner(
               message:
-                  'Un QR es válido solo durante 30 segundos y se invalida al transferir el boleto. Si la firma falla o el boleto ya fue usado, el acceso se rechaza y se audita.',
-              icon: Icons.gpp_maybe_outlined,
+                  'Un QR es válido solo por unos segundos y se invalida si el boleto fue transferido o ya se usó. En estos casos el acceso se rechaza.',
+              icon: Icons.event_busy_outlined,
             ),
           ],
         );

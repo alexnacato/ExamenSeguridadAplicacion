@@ -14,7 +14,7 @@ class AppConfig {
   factory AppConfig.fromEnvironment() {
     const api = String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'http://10.0.2.2:3000',
+      defaultValue: 'http://192.168.1.48:3000',
     );
 
     return AppConfig(

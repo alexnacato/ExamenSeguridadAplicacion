@@ -47,7 +47,7 @@ class _AdminPageState extends State<AdminPage> {
               SectionHeader(
                 title: 'Panel administrativo',
                 subtitle:
-                    'Métricas en tiempo real, integridad del log y operaciones sensibles.',
+                    'Métricas en tiempo real, auditoría y operaciones sensibles.',
                 trailing: IconButton(
                   tooltip: 'Actualizar',
                   onPressed: controller.loading ? null : controller.load,
@@ -84,7 +84,7 @@ class _AdminPageState extends State<AdminPage> {
                 const SizedBox(height: 16),
                 const InfoBanner(
                   message:
-                      'La exportación masiva requiere aprobación gerencial y MFA. Cada intento queda auditado como ALERT_EXPORT_REQUEST.',
+                      'La exportación masiva requiere aprobación gerencial y verificación adicional. Cada intento queda registrado.',
                   icon: Icons.admin_panel_settings_outlined,
                 ),
                 if (controller.audit != null &&
@@ -237,7 +237,7 @@ class _ActionsCard extends StatelessWidget {
           const SectionHeader(
             title: 'Operaciones sensibles',
             subtitle:
-                'Exportación con aprobación y prueba de inmutabilidad del log.',
+                'Exportación con aprobación y verificación de la auditoría.',
           ),
           const SizedBox(height: 16),
           Row(
@@ -267,7 +267,7 @@ class _ActionsCard extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.lock_outline_rounded, size: 18),
-                  label: const Text('Probar WORM'),
+                  label: const Text('Probar auditoría'),
                 ),
               ),
             ],
@@ -294,8 +294,8 @@ class _AuditCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SectionHeader(
-            title: 'Auditoría WORM',
-            subtitle: 'Últimos eventos de la cadena de hashes.',
+            title: 'Auditoría',
+            subtitle: 'Últimos eventos registrados.',
             trailing: StatusBadge(
               label: snapshot.intact ? 'Íntegra' : 'Alterada',
               color: snapshot.intact ? scheme.primary : scheme.error,
@@ -354,19 +354,21 @@ class _AuditRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      entry.event,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: isAlert ? scheme.error : scheme.onSurface,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _eventLabel(entry.event),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: entry.event.startsWith('ALERT')
+                              ? 'monospace'
+                              : null,
+                          color: isAlert ? scheme.error : scheme.onSurface,
+                        ),
                       ),
                     ),
-                  ),
                   Text(
                     _shortDate(entry.timestamp),
                     style: TextStyle(
@@ -392,6 +394,29 @@ class _AuditRow extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _eventLabel(String event) {
+    const labels = {
+      'LOGIN_OK': 'Ingreso de usuario',
+      'LOGIN_FAIL': 'Intento fallido de ingreso',
+      'ACCOUNT_LOCK': 'Cuenta bloqueada temporalmente',
+      'ACCESS_DENIED': 'Acceso denegado',
+      'QUEUE_JOIN': 'Ingresó a la sala de espera',
+      'SEAT_LOCK': 'Reservó un asiento',
+      'PURCHASE': 'Compra realizada',
+      'TRANSFER': 'Boleto transferido',
+      'SCAN_REJECT': 'Código QR rechazado',
+      'ENTRY': 'Ingreso al estadio',
+      'SUPPORT_VIEW': 'Consulta de soporte',
+      'ALERT_EXPORT_REQUEST': 'Solicitud de exportación',
+      'ALERT_TAMPER_ATTEMPT': 'Intento de alteración de registros',
+      'IDOR_BLOCKED': 'Acceso a boleto ajeno bloqueado',
+      'REGISTER': 'Cuenta creada',
+      'LOGOUT': 'Cierre de sesión',
+      'SEED': 'Datos iniciales',
+    };
+    return labels[event] ?? event;
   }
 
   String _shortDate(String value) {

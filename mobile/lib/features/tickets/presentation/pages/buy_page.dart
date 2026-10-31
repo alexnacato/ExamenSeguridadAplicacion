@@ -48,7 +48,7 @@ class _BuyPageState extends State<BuyPage> {
             SectionHeader(
               title: 'Comprar boletos',
               subtitle:
-                  'Sala de espera, bloqueo de asiento por 2 minutos y pago tokenizado.',
+                  'Sala de espera, elige tu asiento y paga con tarjeta.',
               trailing: IconButton(
                 tooltip: 'Actualizar asientos',
                 onPressed: controller.admitted && !controller.loading
@@ -146,7 +146,7 @@ class _BuyPageState extends State<BuyPage> {
         content: Text(
           purchase == null
               ? 'Tus boletos ya están disponibles.'
-              : 'Emitimos ${purchase.ids.length} boleto(s) por ${money(purchase.total)}. Ya puedes mostrar tu QR dinámico.',
+              : 'Emitimos ${purchase.ids.length} boleto(s) por ${money(purchase.total)}. Ya puedes mostrar tu QR en la puerta.',
         ),
         actions: [
           TextButton(

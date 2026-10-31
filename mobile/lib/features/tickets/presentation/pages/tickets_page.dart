@@ -9,7 +9,7 @@ import '../../../../shared/widgets/info_banner.dart';
 import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../domain/entities/ticket_models.dart';
-import '../widgets/qr_dialog.dart';
+import '../widgets/qr_sheet.dart';
 import '../widgets/transfer_dialog.dart';
 
 class TicketsPage extends StatefulWidget {
@@ -49,7 +49,7 @@ class _TicketsPageState extends State<TicketsPage> {
               SectionHeader(
                 title: 'Mis boletos',
                 subtitle:
-                    'Cada boleto tiene un QR firmado que rota cada 15 segundos.',
+                    'Cada boleto tiene un QR exclusivo que se renueva solo.',
                 trailing: IconButton(
                   tooltip: 'Actualizar',
                   onPressed: controller.loading ? null : controller.load,
@@ -205,10 +205,17 @@ class _TicketCard extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: disabled
                       ? null
-                      : () => showDialog<void>(
+                      : () {
+                          final controller = AppScope.of(context).tickets;
+                          showDialog<void>(
                             context: context,
-                            builder: (_) => QrDialog(ticket: ticket),
-                          ),
+                            builder: (_) => TicketQrSheet(
+                              qrLoader: controller.fetchQr,
+                              ticketId: ticket.id,
+                              seat: ticket.seat,
+                            ),
+                          );
+                        },
                   icon: const Icon(Icons.qr_code_2_rounded, size: 18),
                   label: const Text('Ver QR'),
                 ),
@@ -265,25 +272,31 @@ class _StatCard extends StatelessWidget {
             child: Icon(icon, color: color, size: 21),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  height: 1,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  color: theme.colorScheme.onSurfaceVariant,
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

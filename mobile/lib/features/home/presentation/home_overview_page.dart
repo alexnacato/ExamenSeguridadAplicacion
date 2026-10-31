@@ -210,8 +210,8 @@ class HomeOverviewPage extends StatelessWidget {
         const SizedBox(height: 16),
         const InfoBanner(
           message:
-              'Tu JWT expira en 15 minutos y la sesión se revoca al cerrar sesión. Si inicias en un tercer dispositivo, la sesión más antigua se cierra automáticamente.',
-          icon: Icons.security_outlined,
+              'Tu sesión se cierra automáticamente al salir. Si inicias sesión en otro dispositivo, la sesión más antigua se cierra.',
+          icon: Icons.stay_current_portrait_outlined,
         ),
       ],
     );
@@ -220,13 +220,13 @@ class HomeOverviewPage extends StatelessWidget {
   String _headline(String role) {
     switch (role) {
       case 'cliente':
-        return 'Compra, recibe y transfiere boletos con QR firmado. Tu pago se tokeniza y nunca almacenamos el número de tarjeta.';
+        return 'Compra, recibe y transfiere boletos. Tu tarjeta nunca se guarda en el sistema.';
       case 'validador':
-        return 'Valida firmas ECDSA en segundos. Cada QR es de un solo uso y expira a los 30 segundos.';
+        return 'Valida los ingresos en segundos: cada QR es único y se rechaza si se intenta reutilizar.';
       case 'soporte':
-        return 'Consulta boletos con el ID exacto. Cada acceso queda registrado en el log WORM.';
+        return 'Consulta el estado de los boletos. Cada acceso queda registrado.';
       case 'admin':
-        return 'Supervisa ventas, ingresos e integridad de la auditoría desde un solo panel.';
+        return 'Supervisa ventas, ingresos y la auditoría desde un solo panel.';
       default:
         return 'Bienvenido a TicketSec.';
     }
@@ -240,13 +240,13 @@ class HomeOverviewPage extends StatelessWidget {
             index: 1,
             icon: Icons.shopping_cart_outlined,
             title: 'Comprar boletos',
-            subtitle: 'Sala de espera, mapa de asientos y pago tokenizado.',
+            subtitle: 'Sala de espera, mapa de asientos y pago seguro.',
           ),
           _QuickAction(
             index: 2,
             icon: Icons.confirmation_number_outlined,
             title: 'Mis boletos',
-            subtitle: 'Consulta tus QR dinámicos y transfiere entradas.',
+            subtitle: 'Consulta tus boletos, muestra tu QR y transfiere entradas.',
           ),
         ];
       case 'validador':
@@ -255,7 +255,7 @@ class HomeOverviewPage extends StatelessWidget {
             index: 1,
             icon: Icons.qr_code_scanner_rounded,
             title: 'Validar QR',
-            subtitle: 'Verifica firma, vigencia y uso único en puerta.',
+            subtitle: 'Valida cada ingreso en la puerta del estadio.',
           ),
         ];
       case 'soporte':
@@ -264,7 +264,7 @@ class HomeOverviewPage extends StatelessWidget {
             index: 1,
             icon: Icons.manage_search_rounded,
             title: 'Consultar boleto',
-            subtitle: 'Busca por ID y revisa estado y titular enmascarado.',
+            subtitle: 'Busca por ID y revisa estado y titular con correo protegido.',
           ),
         ];
       case 'admin':
@@ -273,7 +273,7 @@ class HomeOverviewPage extends StatelessWidget {
             index: 1,
             icon: Icons.insights_outlined,
             title: 'Panel administrativo',
-            subtitle: 'Métricas, exportación y prueba de inmutabilidad WORM.',
+            subtitle: 'Métricas, exportación y auditoría.',
           ),
         ];
       default:
