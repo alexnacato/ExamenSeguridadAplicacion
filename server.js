@@ -18,6 +18,7 @@ const C = {
   gw: process.env.GATEWAY_URL,
   dev: process.env.DEV_SHOW_OTP === '1',
   rl: +process.env.RL_MAX || 10,
+  maxSessions: +process.env.MAX_SESSIONS || 2,
 };
 
 if (!C.jwt || C.jwt.length < 32) throw new Error('JWT_SECRET (>=32 caracteres) requerido');
@@ -25,6 +26,9 @@ if (!C.jwt || C.jwt.length < 32) throw new Error('JWT_SECRET (>=32 caracteres) r
 const pool = new pg.Pool({ connectionString: C.db });
 const redis = new Redis(C.redis);
 const scrypt = promisify(crypto.scrypt);
+
+pool.on('error', e => console.error('[postgres]', e.message));
+redis.on('error', e => console.error('[redis]', e.message));
 
 /* ========================================================================
  * UTILIDADES
@@ -52,11 +56,17 @@ const hashPw = async p => {
 };
 
 const verifyPw = async (p, st) => {
-  const [s, x] = st.split(':');
-  return crypto.timingSafeEqual(
-    await scrypt(p, Buffer.from(s, 'hex'), 64),
-    Buffer.from(x, 'hex'),
-  );
+  try {
+    const [s, x] = String(st).split(':');
+    if (!s || !x || x.length % 2) return false;
+
+    const expected = Buffer.from(x, 'hex');
+    const actual = await scrypt(p, Buffer.from(s, 'hex'), 64);
+
+    return expected.length === actual.length && crypto.timingSafeEqual(actual, expected);
+  } catch {
+    return false;
+  }
 };
 
 // Constantes de negocio
@@ -300,15 +310,15 @@ app.post(
 
     await redis.del(k);
 
-    const u = (await pool.query('SELECT id,email,role FROM users WHERE id=$1', [c.id])).rows[0];
+    const u = (await pool.query('SELECT id,email,role,name,cedula_last4 FROM users WHERE id=$1', [c.id])).rows[0];
     const sid = crypto.randomUUID();
     const zk = 'usess:' + u.id;
 
     await redis.set('sess:' + sid, u.id, 'EX', 86400);
     await redis.zadd(zk, Date.now(), sid);
 
-    // máx. 10 dispositivos
-    while ((await redis.zcard(zk)) > 10) {
+    // máx. de dispositivos simultáneos por cuenta (configurable)
+    while ((await redis.zcard(zk)) > C.maxSessions) {
       const [old] = await redis.zpopmin(zk);
       await redis.del('sess:' + old);
     }
@@ -320,7 +330,25 @@ app.post(
         algorithm: 'HS256',
         expiresIn: '15m',
       }),
+      user: {
+        id: String(u.id),
+        email: u.email,
+        role: u.role,
+        name: u.name,
+        cedula_last4: u.cedula_last4,
+      },
     });
+  }),
+);
+
+app.post(
+  '/api/auth/logout',
+  auth(ALL),
+  h(async (q, s) => {
+    await redis.del('sess:' + q.u.sid);
+    await redis.zrem('usess:' + q.u.sub, q.u.sid);
+    await audit('LOGOUT', q.u.email, q.u.sid);
+    s.json({ ok: true });
   }),
 );
 
@@ -378,6 +406,7 @@ app.get(
     const L = await locks();
 
     s.json({
+      price: PRICE,
       seats: Object.fromEntries(
         SEATS.map((x, i) => [
           x,
@@ -449,39 +478,61 @@ app.post(
     }
 
     for (const x of seats) {
+      if (!SEATS.includes(x)) throw E(400, 'Asiento inválido: ' + x);
       if ((await redis.get('lock:seat:' + x)) !== q.u.sub) {
         throw E(409, 'Bloqueo expirado: ' + x);
       }
     }
 
-    const have = (
-      await pool.query('SELECT count(*)::int n FROM tickets WHERE owner_id=$1', [q.u.sub])
-    ).rows[0].n;
-    if (have + seats.length > 4) throw E(422, 'Límite: 4 boletos por cuenta');
-
-    const g = await fetch(C.gw + '/charge', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token: payToken, amount: PRICE * seats.length }),
-    });
-    if (!g.ok) throw E(402, 'Pago rechazado');
-
-    const { last4 } = await g.json();
+    const c = await pool.connect();
+    let charged = false;
+    let last4 = '';
     const ids = [];
 
     try {
+      await c.query('BEGIN');
+
+      const have = (
+        await c.query('SELECT count(*)::int n FROM tickets WHERE owner_id=$1', [q.u.sub])
+      ).rows[0].n;
+      if (have + seats.length > 4) throw E(422, 'Límite: 4 boletos por cuenta');
+
+      const sold = await c.query('SELECT seat FROM tickets WHERE seat = ANY($1::text[])', [seats]);
+      if (sold.rowCount) throw E(409, 'Asiento ya vendido: ' + sold.rows[0].seat);
+
+      const g = await fetch(C.gw + '/charge', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: payToken, amount: PRICE * seats.length }),
+      });
+      if (!g.ok) throw E(402, 'Pago rechazado');
+
+      charged = true;
+      ({ last4 } = await g.json());
+
       for (const x of seats) {
-        ids.push(
-          (
-            await pool.query(
-              'INSERT INTO tickets(seat,owner_id,pay_token,last4) VALUES($1,$2,$3,$4) RETURNING id',
-              [x, q.u.sub, payToken, last4],
-            )
-          ).rows[0].id,
+        const r = await c.query(
+          'INSERT INTO tickets(seat,owner_id,pay_token,last4) VALUES($1,$2,$3,$4) RETURNING id',
+          [x, q.u.sub, payToken, last4],
         );
+        ids.push(r.rows[0].id);
       }
+
+      await c.query('COMMIT');
     } catch (e) {
-      throw E(409, 'Asiento ya vendido');
+      await c.query('ROLLBACK').catch(() => {});
+
+      if (charged) {
+        await fetch(C.gw + '/refund', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ token: payToken }),
+        }).catch(() => {});
+      }
+
+      throw e.s ? e : E(409, 'Asiento ya vendido');
+    } finally {
+      c.release();
     }
 
     for (const x of seats) await redis.del('lock:seat:' + x);
@@ -536,6 +587,12 @@ app.post(
       ])
     ).rows[0];
     if (!to) throw E(404, 'Destinatario no registrado');
+    if (String(to.id) === q.u.sub) throw E(400, 'No puedes transferirte un boleto a ti mismo');
+
+    const target = (
+      await pool.query('SELECT count(*)::int n FROM tickets WHERE owner_id=$1', [to.id])
+    ).rows[0].n;
+    if (target >= 4) throw E(422, 'El destinatario ya tiene 4 boletos');
 
     const r = await pool.query(
       'UPDATE tickets SET owner_id=$1,version=version+1 WHERE id=$2 AND owner_id=$3 AND used=false RETURNING id',

@@ -11,7 +11,7 @@ const app = express();
 
 app.use(express.json({ limit: '2kb' }));
 
-// CORS: permite solo a la interfaz servida desde el mismo host en el puerto 3000.
+// CORS: permite solo a interfaces servidas desde el mismo host (red local).
 app.use((q, s, n) => {
   const origin = q.get('origin');
   if (origin) {
@@ -22,7 +22,6 @@ app.use((q, s, n) => {
       if (
         parsedOrigin.protocol === 'http:' &&
         originHostname === requestHostname &&
-        parsedOrigin.port === '3000' &&
         parsedOrigin.origin === origin
       ) {
         s.set({
@@ -75,16 +74,26 @@ app.post('/tokenize', (q, s) => {
   }
 
   const t = 'tok_' + crypto.randomBytes(9).toString('base64url');
-  vault.set(t, n.slice(-4));
+  vault.set(t, { last4: n.slice(-4), used: false });
 
   s.json({ token: t, last4: n.slice(-4) });
 });
 
-app.post('/charge', (q, s) =>
-  vault.has(q.body.token)
-    ? s.json({ ok: true, last4: vault.get(q.body.token) })
-    : s.status(402).json({ error: 'Token inválido' }),
-);
+app.post('/charge', (q, s) => {
+  const record = vault.get(q.body.token);
+  if (!record || record.used) return s.status(402).json({ error: 'Token inválido o ya utilizado' });
+
+  record.used = true;
+  s.json({ ok: true, last4: record.last4 });
+});
+
+app.post('/refund', (q, s) => {
+  const record = vault.get(q.body.token);
+  if (!record || !record.used) return s.status(402).json({ error: 'Nada que reembolsar' });
+
+  record.used = false;
+  s.json({ ok: true });
+});
 
 /* ========================================================================
  * ARRANQUE

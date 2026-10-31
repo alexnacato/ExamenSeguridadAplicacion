@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 /*
  * ============================================================================
@@ -73,12 +73,37 @@ const state = {
   lastQr: '',             // Último QR generado (para el botón "Pegar")
   authTab: 'login',       // Sub-pestaña del acceso: login | register
   qrTimer: null,          // Intervalo que renueva el QR cada 15 segundos
-  remainingSeats: 4       // Cupo restante según los boletos ya comprados
+  remainingSeats: 4,      // Cupo restante según los boletos ya comprados
+  price: TICKET_PRICE,    // Precio unitario informado por el backend
+  theme: 'light'          // Tema visual: light | dark
 };
 
 /* ============================================================================
  * 3. UTILIDADES
  * ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+ * Tema visual (claro / oscuro)
+ * ------------------------------------------------------------------------- */
+const THEME_KEY = 'ticketsec-theme';
+
+function preferredTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch { /* almacenamiento no disponible */ }
+  return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme, persist = true) {
+  state.theme = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = state.theme;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', state.theme === 'dark' ? '#0a0c11' : '#f7f7f9');
+  if (persist) {
+    try { localStorage.setItem(THEME_KEY, state.theme); } catch { /* ignorar */ }
+  }
+}
 
 /** Busca un elemento en el documento. */
 const query = (selector, scope = document) => scope.querySelector(selector);
@@ -95,11 +120,14 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => 
 }[char]));
 
 /** Formatea un número como precio en dólares. */
-const formatMoney = (amount) => '$' + Number(amount || 0).toLocaleString('es-EC');
+const formatMoney = (amount) => '$' + Number(amount || 0).toLocaleString('es-EC', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
 
 /** Texto del botón de pago según los asientos seleccionados. */
 const payButtonLabel = () => 'Pagar' + (state.selectedSeats.length
-  ? ' ' + formatMoney(state.selectedSeats.length * TICKET_PRICE)
+  ? ' ' + formatMoney(state.selectedSeats.length * state.price)
   : '');
 
 /* ---------------------------------------------------------------------------
@@ -137,7 +165,7 @@ async function apiRequest(method, path, body) {
   try { json = await response.json(); } catch { /* respuesta sin cuerpo */ }
 
   if (response.status === 401 && state.token) {
-    logoutUser();
+    logoutUser({ revoke: false });
     showToast('Tu sesión expiró. Inicia sesión de nuevo.', 'warn');
   }
 
@@ -365,6 +393,16 @@ views.buy = async () => {
   ]);
   if (!state.token) return '';
 
+  if (seatsResponse.status !== 200 || mineResponse.status !== 200) {
+    const detail = seatsResponse.body.error || mineResponse.body.error || 'Intenta de nuevo en unos segundos.';
+    return `<section class="card center narrow">
+      <h2>No se pudo cargar la compra</h2>
+      <p class="mut">${escapeHtml(detail)}</p>
+      <button class="btn primary" type="button" data-act="refresh">Reintentar</button>
+    </section>`;
+  }
+
+  state.price = Number(seatsResponse.body.price) || TICKET_PRICE;
   const ownedTickets = mineResponse.body.tickets || [];
   const ownedCount = ownedTickets.length;
   state.remainingSeats = Math.max(0, 4 - ownedCount);
@@ -386,7 +424,7 @@ views.buy = async () => {
     <section class="card">
       <div class="card-head">
         <div><h2>Mapa de asientos</h2><p class="mut small">Haz clic en un asiento libre. El bloqueo dura 120 s.</p></div>
-        <span class="badge info">${formatMoney(TICKET_PRICE)} c/u</span>
+        <span class="badge info">${formatMoney(state.price)} c/u</span>
       </div>
       <p class="hint">Boletos de esta cuenta: ${escapeHtml(ownedCount)}/4 · Puedes elegir ${escapeHtml(state.remainingSeats)} más.</p>
       ${seatMap(seats)}
@@ -397,7 +435,7 @@ views.buy = async () => {
       ${state.selectedSeats.length
         ? `<div class="selected">${state.selectedSeats.map((seat) => `<span class="seat-chip">${escapeHtml(seat)}</span>`).join('')}</div>`
         : `<p class="mut small">Aún no has seleccionado asientos.</p>`}
-      <div class="total"><span>Total</span><strong>${formatMoney(state.selectedSeats.length * TICKET_PRICE)}</strong></div>
+      <div class="total"><span>Total</span><strong>${formatMoney(state.selectedSeats.length * state.price)}</strong></div>
       <hr class="sep">
       <h3>Pago</h3>
       ${formField('pn', 'Número de tarjeta', 'text', { placeholder: '4242 4242 4242 4242', inputmode: 'numeric', autocomplete: 'cc-number' })}
@@ -732,7 +770,8 @@ const actions = {
     openModal(`<h2>Tu QR dinámico</h2>
       <p class="mut small">Firmado con ECDSA P-256 y válido por 30 s.</p>
       <div id="qrbox" class="qrbox"><div class="spinner"></div></div>
-      <p class="qr-count">Se renueva en <b id="qrcount">15</b> s</p>`);
+      <p class="qr-count">Se renueva en <b id="qrcount">15</b> s</p>
+      <button class="btn ghost block" type="button" data-act="copyQr">Copiar código QR</button>`);
 
     let secondsLeft = 15;
 
@@ -873,14 +912,33 @@ const actions = {
     renderApp();
   },
 
+  /** Alterna entre tema claro y oscuro (se recuerda en el navegador). */
+  theme() {
+    applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+  },
+
+  /** Copia el contenido del QR al portapapeles (útil para el modo demo). */
+  async copyQr() {
+    if (!state.lastQr) return showToast('Genera un QR primero.', 'warn');
+    try {
+      await navigator.clipboard.writeText(state.lastQr);
+      showToast('Código QR copiado.', 'ok');
+    } catch {
+      showToast('No se pudo copiar el código.', 'error');
+    }
+  },
+
   closeModal,
 
-  /** Cierra la sesión y limpia el estado local. */
-  logout: logoutUser
+  /** Cierra la sesión, revoca el token en el servidor y limpia el estado local. */
+  logout() {
+    logoutUser({ revoke: true });
+  }
 };
 
 /** Limpia la sesión, los temporizadores y vuelve al login. */
-function logoutUser() {
+async function logoutUser({ revoke = true } = {}) {
+  const token = state.token;
   clearInterval(state.qrTimer);
   state.qrTimer = null;
   closeModal();
@@ -893,6 +951,15 @@ function logoutUser() {
   state.currentTab = 'login';
   state.authTab = 'login';
   renderApp();
+
+  if (revoke && token) {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { authorization: 'Bearer ' + token }
+      });
+    } catch { /* la sesión local ya se cerró */ }
+  }
 }
 
 /* ============================================================================
@@ -997,4 +1064,6 @@ byId('modal').addEventListener('click', (event) => {
 });
 
 /* Arranque de la aplicación. */
+applyTheme(preferredTheme(), false);
 renderApp();
+
